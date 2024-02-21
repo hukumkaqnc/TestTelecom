@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <div style="float: left;">
+        <h2>Список договоров</h2>
+    <div>
+        
+        <p>
+            Номер договора:<br/>
+            <input id="contr_id" />
+        </p>
+        <p>
+            ФИО:<br />
+            <input id="fio" type="text" />
+        </p>
+        <p>
+            Юр. лицо(физ. по умолчанию)<br />
+            <input id="is_phys" type="checkbox" />
+        </p>
+        <p>
+            Адрес
+        </p>
+        <p>
+            <p>Город</p>
+            <input id= "city" type="text"/>
+             <p>Улица:</p>
+            <input id= "street" type="text"/>
+            <p>Дом:</p>
+            <input id= "build" type="text"/>
+             <p>Квартира:</p>
+            <input id= "apart" type="text"/>
+        </p>
+        <p>
+            Статус:<br />
+            <select name="stat_list" id="stat_list">
+                <option value="action">Действующий</option>
+                <option value="paused">Приостановлен</option>
+                <option value="stoped">Не дейтвителен</option>
+            </select>
+        </p>
+        <p>
+            <div id="tariff_container">
+                <label for="tariff_list">Выберите тариф:</label><br>
+                <select name="tariff_list" id="tariff_list"></select>
+            </div>
+        </p>
+         <p>
+            <button id="saveBtn">Сохранить</button>
+            
+        </p>
+    </div>
+    <table>
+        <thead><tr><th>   ФИО    </th><th>  |Статус    </th><th></th></tr></thead>
+        <tbody>
+        </tbody>
+    </table>
+
+    </div>
+    <div style="float: right;">
+        <h2>Баланс</h2>
+    <div>
+        <input id="contrId_balance" readonly/>
+        <p>
+            
+            <input id="balance" readonly/>
+        </p>
+        <p>
+            Сумма:<br />
+            <input id="value" type="number" />
+        </p>
+        <p>
+            Дата:<br />
+            <input id="date" type="text" />
+        </p>
+         <p>
+            <button id="payBtn">Оплатить</button>
+           
+        </p>
+    </div>
+    
+    </div>
+    <script>
+        async function createContr(id, fio, is_phys, status, city, street, build, apart, tariff) {
+  
+            const response = await fetch("/add/contract", {
+                method: "POST",
+                headers: { "Accept": "application/json", "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    id: id,
+                    fio: fio,
+                    is_phys: !is_phys.checked,
+                    status: status,
+                    city: city,
+                    street: street,
+                    build: build,
+                    apart: apart,
+                    tariff: tariff
+                    
+                })
+            });
+            console.log(status);
+            console.log(tariff)
+        }
+    async function getContrs() {
+        
+        const response = await fetch("/get/contracts", {
+            method: "GET",
+            headers: { "Accept": "application/json" }
+        });
+        
+        if (response.ok === true) {
+            
+            const contrs = await response.json();
+            const rows = document.querySelector("tbody");
+            
+            contrs.forEach(contr => rows.append(row(contr)));
+        }
+    }
+    async function getAddress(id){
+        const response = await fetch(`/get/addr/${id}`, {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true) {
+                const addr = await response.json();
+                document.getElementById("city").value = addr.city;
+                document.getElementById("street").value = addr.street;
+                document.getElementById("build").value = addr.build;
+                document.getElementById("apart").value = addr.apart;
+            }
+            else {
+                
+                const error = await response.json();
+                console.log(error.message); 
+            }
+    }
+    async function getContr(id) {
+            const response = await fetch(`/get/contr/${id}`, {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true) {
+                const contr = await response.json();
+                document.getElementById("contr_id").value = contr.id;
+                document.getElementById("fio").value = contr.fio;
+                document.getElementById("is_phys").checked = !contr.is_phys;
+                document.getElementById("stat_list").value = contr.status;
+                document.getElementById("tariff_list").value = contr.tariff;
+                getAddress(contr.addr);
+            }
+            else {
+                
+                const error = await response.json();
+                console.log(error.message); 
+            }
+        }
+    async function editContr(id, fio, is_phys, status, city, street, build, apart, tariff){
+        const response = await fetch("/edit/contract", {
+                method: "PUT",
+                headers: { "Accept": "application/json", "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    id: id,
+                    fio: fio,
+                    is_phys: !is_phys.checked,
+                    status: status,
+                    city: city,
+                    street: street,
+                    build: build,
+                    apart: apart,
+                    tariff: tariff
+                })
+            });
+            console.log(response)
+            if (response.ok === true) {
+                const contr = await response.json();
+                document.querySelector(`tr[data-rowid='${contr.id}']`).replaceWith(row(contr));
+            }
+            else {
+                const error = await response.json();
+                console.log(error.message);
+            }
+    }
+        function row(contr) {
+        
+        const tr = document.createElement("tr");
+        tr.setAttribute("data-rowid", contr.id);
+
+        const fioTd = document.createElement("td");
+        fioTd.append(contr.fio);
+        tr.append(fioTd);
+
+        const status = document.createElement("td");
+        status.append(contr.status);
+        tr.append(status);
+
+        const linksTd = document.createElement("td");
+
+        const editLink = document.createElement("button"); 
+        editLink.append("Изменить/Просмотреть");
+        editLink.addEventListener("click", async() => await getContr(contr.id));
+        linksTd.append(editLink);
+
+        const payLink = document.createElement("button"); 
+        payLink.append("Баланс");
+        payLink.addEventListener("click", async() => await getBalance(contr.id));
+        linksTd.append(payLink);
+
+        const removeLink = document.createElement("button"); 
+        removeLink.append("Удалить");
+        removeLink.addEventListener("click", async () => await deleteContr(contr.id));
+
+        linksTd.append(removeLink);
+        tr.appendChild(linksTd);
+
+        return tr;
+        }
+
+    async function getTarrifs() {
+        const response = await fetch("/get/tarrifs", {
+            method: "GET",
+            headers: { "Accept": "application/json" }
+        });
+
+        if (response.ok == true) {
+            const tarrifs = await response.json();
+            let tar_list = document.getElementById("tariff_list");
+
+            tarrifs.forEach(tariff => {
+                let option = document.createElement("option");
+                option.text = tariff.name + ": " + tariff.price;
+                option.value = tariff.id;
+                tar_list.appendChild(option);
+            });
+        }
+    }
+    function getBalance(id){
+        document.getElementById("contrId_balance").value = id
+        get_bal(id);
+
+    }
+    async function get_bal(id){
+        const response = await fetch(`/get/balance/${id}`, {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
+        if (response.ok === true) {
+            const bal = await response.json();
+            console.log(bal)
+            document.getElementById('balance').value = bal.value;
+        }
+        else {
+            const error = await response.json();
+            console.log(error.message);
+        }
+        
+    }
+    document.getElementById("saveBtn").addEventListener("click", async () => {
+             
+            const id = document.getElementById("contr_id").value;
+            const fio = document.getElementById("fio").value;
+            const is_phys = document.getElementById("is_phys");        
+            const status = document.getElementById("stat_list").value;        
+            const city = document.getElementById("city").value;     
+            const street = document.getElementById("street").value;       
+            const build = document.getElementById("build").value;   
+            const apart = document.getElementById("apart").value;        
+            const tariff = document.getElementById("tariff_list").value;          
+
+            
+            
+            if (id === ""){
+                await createContr(id, fio, is_phys, status, city, street, build, apart, tariff);
+            }
+            else
+                 await editContr(id, fio, is_phys, status, city, street, build, apart, tariff);
+            //reset();
+        });
+    document.getElementById("payBtn").addEventListener("click", async () => {
+        const val = document.getElementById("value").value;
+        const date = document.getElementById("date").value;
+        const cont_id = document.getElementById("contrId_balance").value;
+        incoming(val, date, cont_id);
+        
+
+    });
+    async function incoming(val, date, cont_id){
+        const response = await fetch("/add/inc", {
+                method: "POST",
+                headers: { "Accept": "application/json", "Content-Type": "application/json" },
+                body: JSON.stringify({
+                   value: val,
+                   date: date,
+                   cont_id: cont_id
+                })
+            });
+            document.getElementById("value").value = 0;
+            document.getElementById("date").value = '';
+            get_bal(cont_id);
+    }
+    async function deleteContr(id) {
+            const response = await fetch(`/delete/contr/${id}`, {
+                method: "DELETE",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true) {
+                const contr = await response.json();
+                document.querySelector(`tr[data-rowid='${contr.id}']`).remove();
+            }
+            else {
+                const error = await response.json();
+                console.log(error.message);
+            }
+        }
+        
+    getTarrifs();
+   
+    getContrs();
+    </script>
+    
+</body>
+</html>
