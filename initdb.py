@@ -5,11 +5,12 @@ from datetime import date
 
 
 
-sql_url = "postgresql+psycopg2://postgres:admin@localhost:5432/tmpkDB"
+
+sql_url = "postgresql+psycopg2://postgres:admin@localhost:5432/tmpkDB"#подключение к бд
 engine = create_engine(sql_url)
 Base = declarative_base()
 
-
+#создание таблиц
 class Address(Base):
     __tablename__ = "address"
 
